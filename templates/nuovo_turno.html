@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+{% block body %}
+	<div class="page-header">
+	  <h1>Nuovo turno</h1>
+	</div>
+	<div>
+		<form method="POST" class="form-inline">
+			<div class="row">
+				<div class="form-group col-xs-1">
+					<label for="dip">Dipendente</label>
+				</div>	
+				<div class="form-group col-xs-11">
+					<select name="dipendente" id="dip" class="form-control">
+					{% for d in dipendenti %}
+						<option value="{{ d.id }}">{{ d.cognome }} {{ d.nome }}</option>
+					{% endfor %}
+					</select>
+				</div>
+			</div>
+			<div class="row">
+				<div class="form-group col-xs-1">
+					<label for="dtin">Dal</label>
+				</div>
+				<div class="form-group col-xs-11">
+					<input type="date" class="form-control" id="dtin" name="dtin" value="2017-01-01" />
+					<input type="time" class="form-control" name="tmin" value="00:00">
+				</div>
+			</div>
+			<div class="row">
+				<div class="form-group col-xs-1">
+					<label for="dtfi">Al</label>
+				</div>
+				<div class="form-group col-xs-11">
+					<input type="date" class="form-control" id="dtfi" name="dtfi" value="2017-01-01" />
+					<input type="time" class="form-control" name="tmfi" value="00:00">
+				</div>
+			</div>
+			<div class="row">
+				<div class="form-group col-xs-1">
+					<label for="reparto">Reparto</label>
+				</div>
+				<div class="form-group col-xs-11">
+					<select name="reparto" id="reparto" class="form-control">
+					{% for r in reparti %}
+						<option value="{{ r.id }}">{{ r.nome }}</option>
+					{% endfor %}
+					</select>
+				</div>
+			</div>
+			<input type="submit" class="btn btn-success" value="Nuovo" />
+		</form>
+	</div>
+{% endblock %}
