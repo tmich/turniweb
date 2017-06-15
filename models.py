@@ -98,6 +98,9 @@ class Dipendenti(Base):
     citta_nascita = Column(String(50))
     cellulare2 = Column(String(15))
     presenze = relationship(u'Presenze')
+    
+    def nome_completo(self):
+	return self.cognome + ' ' + self.nome
 
 t_dipendenti_bkp = Table(
     'dipendenti_bkp', metadata,

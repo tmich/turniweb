@@ -1,15 +1,17 @@
 {% extends "layout.html" %}
 {% block body %}
-	<h5>Data Inizio:</h5> {{ data_inizio|dt }}
-	<h5>Data Fine:</h5> {{ data_fine|dt }}
-	<table>
-		{% for p in presenze %}
-			<tr>
-				{# <td>{{ dipendente.cognome }} {{ dipendente.nome }}</td> #}
-				<td>{{ p.dipendente.cognome }} {{ p.dipendente.nome }}</td>
-				<td>{{ p.data_inizio|dt }}</td>
-				<td>{{ p.reparto }}</td>
-			</tr>
-		{% endfor %}
-	</table>
+  <h5>Data Inizio:</h5> {{ data_inizio|dt }}
+  <h5>Data Fine:</h5> {{ data_fine|dt }}
+  <table class="table">
+    {% for dip, presenze in matrice.iteritems() %}
+      <tr>
+	<td>{{ dip }}</td>
+	<td>
+	{% for p in presenze %}
+	  {{p.id}}-{{ p.data_inizio|dt('%H:%M') }} - {{ p.data_fine|dt('%H:%M') }} ({{ p.reparto }})<br />
+	{% endfor %}
+	</td>
+      </tr>
+    {% endfor %}
+  </table>
 {% endblock %}
