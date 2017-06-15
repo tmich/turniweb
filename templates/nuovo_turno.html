@@ -12,7 +12,7 @@
 				<div class="form-group col-xs-11">
 					<select name="dipendente" id="dip" class="form-control">
 					{% for d in dipendenti %}
-						<option value="{{ d.id }}">{{ d.cognome }} {{ d.nome }}</option>
+						<option value="{{ d.id }}" {% if id_dipendente == d.id %} selected {% endif %}>{{ d.cognome }} {{ d.nome }}</option>
 					{% endfor %}
 					</select>
 				</div>
@@ -22,7 +22,7 @@
 					<label for="dtin">Dal</label>
 				</div>
 				<div class="form-group col-xs-11">
-					<input type="date" class="form-control" id="dtin" name="dtin" value="2017-01-01" />
+					<input type="date" class="form-control" id="dtin" name="dtin" value="{{ data }}" />
 					<input type="time" class="form-control" name="tmin" value="00:00">
 				</div>
 			</div>
@@ -31,7 +31,7 @@
 					<label for="dtfi">Al</label>
 				</div>
 				<div class="form-group col-xs-11">
-					<input type="date" class="form-control" id="dtfi" name="dtfi" value="2017-01-01" />
+					<input type="date" class="form-control" id="dtfi" name="dtfi" value="{{ data }}" />
 					<input type="time" class="form-control" name="tmfi" value="00:00">
 				</div>
 			</div>

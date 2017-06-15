@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+{% block body %}
+	<div class="page-header">
+	  <h1>Modifica turno</h1>
+	</div>
+	<div>
+		<form method="POST" class="form-inline">
+			<div class="row">
+			  <input type="hidden" name="id_presenza" value="{{ id_presenza }}" />
+				<div class="form-group col-xs-1">
+					<label for="dip">Dipendente</label>
+				</div>	
+				<div class="form-group col-xs-11">
+					<select name="dipendente" id="dip" class="form-control">
+					{% for d in dipendenti %}
+						<option value="{{ d.id }}" {% if id_dipendente == d.id %} selected {% endif %}>{{ d.cognome }} {{ d.nome }}</option>
+					{% endfor %}
+					</select>
+				</div>
+			</div>
+			<div class="row">
+				<div class="form-group col-xs-1">
+					<label for="dtin">Dal</label>
+				</div>
+				<div class="form-group col-xs-11">
+					<input type="date" class="form-control" id="dtin" name="dtin" value="{{ data_inizio }}" />
+					<input type="time" class="form-control" name="tmin" value="{{ ora_inizio }}">
+				</div>
+			</div>
+			<div class="row">
+				<div class="form-group col-xs-1">
+					<label for="dtfi">Al</label>
+				</div>
+				<div class="form-group col-xs-11">
+					<input type="date" class="form-control" id="dtfi" name="dtfi" value="{{ data_fine }}" />
+					<input type="time" class="form-control" name="tmfi" value="{{ ora_fine }}">
+				</div>
+			</div>
+			<div class="row">
+				<div class="form-group col-xs-1">
+					<label for="reparto">Reparto</label>
+				</div>
+				<div class="form-group col-xs-11">
+					<select name="reparto" id="reparto" class="form-control">
+					{% for r in reparti %}
+						<option value="{{ r.nome }}" {% if r.nome == reparto %} selected {% endif %}>{{ r.nome }}</option>
+					{% endfor %}
+					</select>
+				</div>
+			</div>
+			<input type="submit" class="btn btn-success" value="Modifica" />
+		</form>
+	</div>
+{% endblock %}

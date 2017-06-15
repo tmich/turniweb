@@ -1,14 +1,15 @@
 {% extends "layout.html" %}
 {% block body %}
   <form method="POST" id="dform" class="form-inline">
-    <input type="date" name="data_inizio" id="data_inizio" onchange="$( '#dform' ).submit();" class="form-control" value="{{data_inizio|dt('%Y-%m-%d')}}" />
+    <input type="date" name="data_inizio" id="data_inizio" class="form-control" value="{{data_inizio|dt('%Y-%m-%d')}}" />
+    <input type="submit" value="Aggiorna" class="btn btn-default" />
   </form><br />
   <div class="table-responsive">
       <table class="table-bordered">
         <tr>
             <th style="text-align: center;">Dipendente</th>
             {% for g in giorni %}
-                <th style="text-align: center;">{{ g|dt}}</th>
+                <th style="text-align: center;">{{ g|dt }}</th>
             {% endfor %}
         </tr>
         {% for pre, fill, node in tree %}
@@ -18,11 +19,29 @@
                         <td class="col-xs-2">{{ node.name }}</td>
                         {% for desc in node.descendants %}
                             <td class="col-xs-1" style="text-align: center;">
-                                {% for line in desc.lines %}
-                                    {% for l in line %}
-                                        <a href="#{{ l.id }}" title="{{l.reparto}}">{{ l.data_inizio|dt('%H:%M') }}-{{ l.data_fine|dt('%H:%M') }}</a><br />
+                                {% for presenze in desc.presenze %}
+                                    {% for p in presenze %}
+                                        <a href="{{ url_for('modifica_turno', id_presenza=p.id) }}" title="{{ p.reparto }}">
+					  {{ p.data_inizio|dt('%H:%M') }}-{{ p.data_fine|dt('%H:%M') }}
+					</a><br />
                                     {% endfor %}
                                 {% endfor %}
+                                
+                                {% for assenze in desc.assenze %}
+				    {% for a in assenze %}
+					<span>
+					  <a href="#{{ a.id }}" style="color: red" title="{{ a.motivo }}">
+					    {% if a.giornata_intera %}
+					      {{ a.motivo }}
+					    {% else %}
+					      {{ a.data_inizio|dt('%H:%M') }}-{{ a.data_fine|dt('%H:%M') }}
+					    {% endif %}
+					  </a>
+					</span><br />
+				    {% endfor %}
+                                {% endfor %}
+                                
+                                <a href="{{ url_for('nuovo_turno', data=desc.data|dt('%Y-%m-%d'), id_dipendente=desc.dip_id) }}">+</a>
                             </td>
                         {% endfor %}
                     {% endif %}
