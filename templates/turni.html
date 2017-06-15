@@ -1,17 +1,34 @@
 {% extends "layout.html" %}
 {% block body %}
-  <h5>Data Inizio:</h5> {{ data_inizio|dt }}
-  <h5>Data Fine:</h5> {{ data_fine|dt }}
-  <table class="table">
-    {% for dip, presenze in matrice.iteritems() %}
-      <tr>
-	<td>{{ dip }}</td>
-	<td>
-	{% for p in presenze %}
-	  {{p.id}}-{{ p.data_inizio|dt('%H:%M') }} - {{ p.data_fine|dt('%H:%M') }} ({{ p.reparto }})<br />
-	{% endfor %}
-	</td>
-      </tr>
-    {% endfor %}
-  </table>
+  <form method="POST" id="dform" class="form-inline">
+    <input type="date" name="data_inizio" id="data_inizio" onchange="$( '#dform' ).submit();" class="form-control" value="{{data_inizio|dt('%Y-%m-%d')}}" />
+  </form><br />
+  <div class="table-responsive">
+      <table class="table-bordered">
+        <tr>
+            <th style="text-align: center;">Dipendente</th>
+            {% for g in giorni %}
+                <th style="text-align: center;">{{ g|dt}}</th>
+            {% endfor %}
+        </tr>
+        {% for pre, fill, node in tree %}
+            <tr>
+                {% if not node.is_root %}
+                    {% if not node.is_leaf %}
+                        <td class="col-xs-2">{{ node.name }}</td>
+                        {% for desc in node.descendants %}
+                            <td class="col-xs-1" style="text-align: center;">
+                                {% for line in desc.lines %}
+                                    {% for l in line %}
+                                        <a href="#{{ l.id }}" title="{{l.reparto}}">{{ l.data_inizio|dt('%H:%M') }}-{{ l.data_fine|dt('%H:%M') }}</a><br />
+                                    {% endfor %}
+                                {% endfor %}
+                            </td>
+                        {% endfor %}
+                    {% endif %}
+                {% endif %}
+            </tr>
+        {% endfor %}
+      </table>
+  </div>
 {% endblock %}

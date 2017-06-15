@@ -1,12 +1,13 @@
 from __future__ import print_function
 import os, config, json, datetime, flask, sys, time
-from datetime import timedelta
+from datetime import timedelta, date
 from flask import Flask, request, session, g, redirect, url_for, abort, render_template, flash, make_response, jsonify
 from flask_babel import Babel, format_datetime, format_date
 from flask_mail import Mail, Message
 from dateutil.parser import parse
 import jsonpickle
 from models import db, Dipendenti, Presenze, Assenze, Reparti
+from anytree import Node, RenderTree
 
 app = Flask(__name__)
 app.config.from_object('config.DevelopmentConfig')
@@ -20,42 +21,73 @@ def index():
     g.user={'name':'pippo'}
     return render_template('index.html')
 
-def crea_matrice_orari(dt1, count):
-    matr=dict()
+def crea_albero_presenze(dt1, dt2):
+    delta = dt2 - dt1
+    days = delta.days
+    
+    giorni = []
+    
+    presenze = (db.session.query(Presenze).
+        outerjoin(Dipendenti, Presenze.dipendente).
+        filter(Presenze.cancellato==0).
+        filter(Presenze.data_inizio.between(dt1, dt2)).
+        order_by(Dipendenti.cognome).
+        order_by(Presenze.data_inizio)
+    )
+    
     dipendenti=db.session.query(Dipendenti).filter_by(cancellato=0).order_by('cognome')
-    gg=dt1
-    for dip in dipendenti:
-      matr[dip.nome_completo()] = []
-      print(dip.nome_completo(), file=sys.stderr)
-      for i in range(count):
-	#presenze=db.session.query(Presenze).filter(Presenze.cancellato==0).filter(Presenze.dipendente_id == dip.id)
-	print(datetime.date(gg.year, gg.month, gg.day), file=sys.stderr)
-	day = int(gg.day)
-	presenze=db.session.query(Presenze).filter(
-	    Presenze.cancellato==0,
-	    Presenze.dipendente_id == dip.id,
-	    db.func.year(Presenze.data_inizio) == gg.year,
-	    db.func.month(Presenze.data_inizio) == gg.month)
-	lista_presenze=matr[dip.nome_completo()]
-	print(presenze.count(), file=sys.stderr)
-	for p in presenze:
-	  lista_presenze.append(p)
-	  #print(db.func.extract(Presenze.data_inizio, 'day').scalar(), file=sys.stderr)
-	  #print(datetime.date(gg.year, gg.month, gg.day), file=sys.stderr)
-	matr[dip.nome_completo()] = lista_presenze
-	gg = gg + datetime.timedelta(days=1)
-	
-      gg=dt1
-	
-    return matr
+    root=Node("root")
+    
+    i=0
+    dt=dt1
+    for i in range(days):
+        giorni.append(dt)
+        dt = dt + datetime.timedelta(days=1)
+    
+    for d in dipendenti:
+        node_dip=Node(d.nome_completo(), parent=root)
+        dt=dt1
+        i=0
+        for i in range(days):
+            presenze = (db.session.query(Presenze).
+                filter(Presenze.cancellato==0).
+                filter(Presenze.dipendente_id==d.id).
+                filter(Presenze.data_inizio.between(dt, dt + datetime.timedelta(days=1))).
+                order_by(Presenze.data_inizio)
+            )
+            list_presenze=[ObjPresenza(p.id, p.data_inizio, p.data_fine, p.reparto) for p in presenze]
+            node_gg=Node("presenze", parent=node_dip, lines=[list_presenze])
+            dt = dt + datetime.timedelta(days=1)
+    
+    for pre, fill, node in RenderTree(root):
+        print("%s%s" % (pre, node.name), file=sys.stderr)
+        
+    return RenderTree(root), giorni, dipendenti
 
-@app.route('/turni')
+class ObjPresenza(object):
+    def __init__(self, id, data_inizio, data_fine, reparto):
+        self.id = id
+        self.data_inizio = data_inizio
+        self.data_fine = data_fine
+        self.reparto = reparto
+        
+    def __repr__(self):
+        return '%d %s %s %s' % (self.id, self.data_inizio, self.data_fine, self.reparto)
+
+@app.route('/turni', methods=['GET', 'POST'])
 def turni():
-    g.user={'name':'pippo'}
-    data_in= datetime.datetime(2016, 5, 4)  #datetime.date.today()
-    data_fi=data_in + timedelta(days=7)
-    matrice=crea_matrice_orari(data_in, 7)
-    return render_template('turni.html', matrice=matrice, data_inizio=data_in, data_fine=data_fi)
+    g.user = {'name':'pippo'}
+    dt1 = date.today()
+    
+    if(request.method=='POST'):
+        dt1 = parse(request.form['data_inizio'])
+    
+    dt2 = dt1 + datetime.timedelta(days=7)
+    
+    tree, giorni, dipendenti = crea_albero_presenze(dt1, dt2)
+    
+    #matrice = MatricePresenze(presenze, parse(dt1), parse(dt2))
+    return render_template('turni.html', dipendenti=dipendenti, tree=tree, data_inizio=dt1, data_fine=dt2, giorni=giorni)
 
 @app.route('/nuovo_turno', methods=['GET', 'POST'])
 def nuovo_turno():
@@ -100,5 +132,4 @@ def _jinja2_filter_date(date, fmt=None):
         return format_date(date, 'medium')
 
 if __name__ == "__main__":
-    #app.run(host='192.168.56.101', port=5000)
-    app.run()
+    app.run(host='192.168.56.101', port=5000)
