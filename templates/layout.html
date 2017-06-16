@@ -49,24 +49,16 @@
 	<a class="navbar-brand" href="#">Turni Web</a>
       </div>
       <div id="navbar" class="navbar-collapse collapse">
-	{% if g.user == None %}
-	  <form class="navbar-form navbar-right" method="POST" action="{{ url_for('login') }}">
-	    <div class="form-group">
-	      <input type="text" placeholder="nome utente" name="username" class="form-control">
-	    </div>
-	    <div class="form-group">
-	      <input type="password" placeholder="password" name="password" class="form-control">
-	    </div>
-	    <button type="submit" class="btn btn-success">Accedi</button>
-	  </form>  
-	{% else %}
-	  <ul class="nav navbar-nav navbar-right">
-	    {#<li><a href="{{ url_for('profilo') }}">Profilo</a></li>#}
-		<li><a href="{{ url_for('turni') }}">Turni</a></li>
-		<li><a href="{{ url_for('nuovo_turno') }}">Nuovo turno</a></li>
-	    <li><a href="{{ url_for('logout') }}"><span class="glyphicon glyphicon-log-out"></span> Esci ({{ g.user.username }})</a></li>
-	  </ul>
-	{% endif %}
+        <ul class="nav navbar-nav navbar-right">
+        <li>{{ current_user.is_authenticated }}</li>
+        {% if not current_user.is_authenticated %}
+            <li><a href="{{ url_for('login') }}">Accedi</a></li>
+        {% else %}
+            <li><a href="{{ url_for('turni') }}">Turni</a></li>
+            {#<li><a href="{{ url_for('nuovo_turno') }}">Nuovo turno</a></li>#}
+            <li><a href="{{ url_for('logout') }}"><span class="glyphicon glyphicon-log-out"></span> Esci ({{ current_user.username }})</a></li>
+        {% endif %}
+        </ul>
       </div><!--/.navbar-collapse -->
     </div>
   </nav>
@@ -74,26 +66,19 @@
   <div class="container-fluid">
     <div class="row">
       <div class="col-sm-3 col-md-2 sidebar">
-	{% if g.user != None %}
-	  {#<ul class="nav nav-sidebar">
-		<div class="form-group">
-			<label for="dt">Data:</label><input type="date" class="form-control" id="dt" name="dt" value="2017-01-01" /><br />
-		</div>
-	  </ul>#}
-	{% endif %}
       </div>  
       
       <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-	{% with messages = get_flashed_messages(with_categories=true) %}
-	  {% if messages %}
-	    <div class=flashes>
-	    {% for category, message in messages %}
-	      <div class="alert alert-{{ category }}">{{ message }}</div>
-	    {% endfor %}
-	    </div>
-	  {% endif %}
-	{% endwith %}
-	{% block body %}{% endblock %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class=flashes>
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+        {% block body %}{% endblock %}
       </div>
     </div>
   </div>

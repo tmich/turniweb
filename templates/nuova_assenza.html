@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% block body %}
 	<div class="page-header">
-	  <h1>Nuovo turno</h1>
+	  <h1>Nuova assenza</h1>
 	</div>
 	<div>
 		<form method="POST" class="form-inline">
@@ -25,7 +25,8 @@
 				</div>
 				<div class="form-group col-xs-11">
 					<input type="date" class="form-control" id="dtin" name="dtin" value="{{ data }}" />
-					<input type="time" class="form-control" name="tmin" value="00:00">
+					<input type="time" class="form-control" id="tmin" name="tmin" value="00:00" />
+                    <input type="checkbox" id="intera" name="intera" onclick='handleClick(this);' /> Giornata Intera
 				</div>
 			</div>
 			<div class="row">
@@ -34,17 +35,17 @@
 				</div>
 				<div class="form-group col-xs-11">
 					<input type="date" class="form-control" id="dtfi" name="dtfi" value="{{ data }}" />
-					<input type="time" class="form-control" name="tmfi" value="00:00">
+					<input type="time" class="form-control" id="tmfi" name="tmfi" value="00:00" />
 				</div>
 			</div>
 			<div class="row">
 				<div class="form-group col-xs-1">
-					<label for="reparto">Reparto</label>
+					<label for="motivo">Causale</label>
 				</div>
 				<div class="form-group col-xs-11">
-					<select name="reparto" id="reparto" class="form-control">
-					{% for r in reparti %}
-						<option value="{{ r.nome }}" {% if r.nome == reparto %} selected {% endif %}>{{ r.nome }}</option>
+					<select name="motivo" id="motivo" class="form-control">
+					{% for m in motivi %}
+						<option value="{{ m.id }}">{{ m.descrizione }}</option>
 					{% endfor %}
 					</select>
 				</div>
@@ -57,4 +58,16 @@
             </div>
 		</form>
 	</div>
+    
+    <script type="text/javascript">
+        function handleClick(cb) {
+          if(cb.checked) {
+            $('#tmin').val('00:00');
+            $('#tmfi').val('23:59');
+          }
+          
+          //$("#tmin").prop('disabled', cb.checked);
+          //$("#tmfi").prop('disabled', cb.checked);
+        }
+    </script>
 {% endblock %}

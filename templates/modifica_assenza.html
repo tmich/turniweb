@@ -1,0 +1,72 @@
+{% extends "layout.html" %}
+{% block body %}
+	<div class="page-header">
+	  <h1>Modifica assenza</h1>
+	</div>
+	<div>
+		<form method="POST" class="form-inline">
+			<div class="row">
+                <input type="hidden" name="id_assenza" value="{{ id_assenza }}" />
+				<div class="form-group col-xs-1">
+					<label for="dip">Dipendente</label>
+				</div>	
+				<div class="form-group col-xs-11">
+					<select name="dipendente" id="dip" class="form-control">
+					{% for d in dipendenti %}
+						<option value="{{ d.id }}" {% if id_dipendente == d.id %} selected {% endif %}>{{ d.cognome }} {{ d.nome }}</option>
+					{% endfor %}
+					</select>
+				</div>
+			</div>
+			<div class="row">
+				<div class="form-group col-xs-1">
+					<label for="dtin">Dal</label>
+				</div>
+				<div class="form-group col-xs-11">
+					<input type="date" class="form-control" id="dtin" name="dtin" value="{{ data_inizio }}" />
+					<input type="time" class="form-control" id="tmin" name="tmin" value="{{ ora_inizio }}" />
+                    <input type="checkbox" id="intera" name="intera" {% if giornata_intera %} checked {% endif %} onclick='handleClick(this);' /> Giornata Intera
+				</div>
+			</div>
+			<div class="row">
+				<div class="form-group col-xs-1">
+					<label for="dtfi">Al</label>
+				</div>
+				<div class="form-group col-xs-11">
+					<input type="date" class="form-control" id="dtfi" name="dtfi" value="{{ data_fine }}" />
+					<input type="time" class="form-control" id="tmfi" name="tmfi" value="{{ ora_fine }}" />
+				</div>
+			</div>
+			<div class="row">
+				<div class="form-group col-xs-1">
+					<label for="motivo">Causale</label>
+				</div>
+				<div class="form-group col-xs-11">
+					<select name="motivo" id="motivo" class="form-control">
+					{% for m in motivi %}
+						<option value="{{ m.id }}" {% if m.id == motivo_id %} selected {% endif %}>{{ m.descrizione }}</option>
+					{% endfor %}
+					</select>
+				</div>
+			</div><br />
+            <div class="row">
+                <div class="form-group col-xs-2">
+                    <input type="submit" class="btn btn-success" value="Modifica" />
+                    <a href="{{ url_for('turni') }}" type="button" class="btn btn-default">Esci</a>
+                </div>
+            </div>
+		</form>
+	</div>
+    
+    <script type="text/javascript">
+        function handleClick(cb) {
+          if(cb.checked) {
+            $('#tmin').val('00:00');
+            $('#tmfi').val('23:59');
+          }
+          
+          //$("#tmin").prop('disabled', cb.checked);
+          //$("#tmfi").prop('disabled', cb.checked);
+        }
+    </script>
+{% endblock %}

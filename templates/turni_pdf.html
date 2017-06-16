@@ -1,0 +1,88 @@
+<html>
+    <head>
+        <style>
+        @page {
+            size: a4 landscape;
+            margin: 1cm;
+        }
+        body { font-family: "Verdana", sans-serif; font-size: 8pt; }
+        
+        .header td {
+          text-align: left;
+        }
+        
+        .hd { 
+          border: 1px solid black; 
+          font-variant: normal;
+          text-align: right;
+        }
+        
+        .far {
+          border-right: 1px solid black;
+        }  
+        
+        td {
+          text-align: right; 
+          border-bottom: none;
+          border-left: 1px solid black;
+          font-size: 7pt;
+        }
+        
+        .last {
+          border-bottom: 1px solid black;
+        }
+        
+        .void {
+          border: none;
+          text-align: left;
+        }
+        
+        .tot {
+          border-top: 1px solid black;
+          border-bottom: 1px solid black;
+        }
+        
+        </style>
+    </head>
+    <body>
+    {% block body %}
+        <table border="1" cellpadding="5">
+        <tr>
+            <th style="text-align: center;" width="20%">Dipendente</th>
+            {% for g in giorni %}
+                <th style="text-align: center;">{{ g|dt }}</th>
+            {% endfor %}
+        </tr>
+        {% for pre, fill, node in tree %}
+            {% if not node.is_root %}
+                {% if not node.is_leaf %}
+                    <tr>
+                        <td>{{ node.name | truncate(length=30) }}</td>
+                        {% for giornata in node.descendants %}
+                            <td style="text-align:center;">
+                                {% for presenze in giornata.presenze %}
+                                    {% for p in presenze %}
+                                          [{{ p.reparto }}] {{ p.data_inizio|dt('%H:%M') }}-{{ p.data_fine|dt('%H:%M') }}<br />
+                                    {% endfor %}
+                                {% endfor %}
+                                
+                                {% for assenze in giornata.assenze %}
+                                    {% for a in assenze %}
+                                    <span>
+                                        [{{ a.motivo }}]
+                                        {% if not a.giornata_intera %}
+                                            &nbsp;{{ a.data_inizio|dt('%H:%M') }}-{{ a.data_fine|dt('%H:%M') }}
+                                        {% endif %}
+                                    </span><br />
+                                    {% endfor %}
+                                {% endfor %}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% endif %}    
+            {% endif %}
+        {% endfor %}
+        </table>        
+    {% endblock %}
+    </body>
+</html>

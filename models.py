@@ -33,6 +33,15 @@ class Assenze(Base):
     dipendente = relationship(u'Dipendenti')
     motivo = relationship(u'MotivoAssenza')
     utente = relationship(u'Utenti')
+    
+    def __init__(self, dipendente_id, data_inizio, data_fine, giornata_intera, motivo_id, note='', utente_id=1):
+        self.dipendente_id=dipendente_id
+        self.data_inizio=data_inizio
+        self.data_fine=data_fine
+        self.motivo_id=motivo_id
+        self.giornata_intera=giornata_intera
+        self.note=note
+        self.utente_id=utente_id
 
 
 t_assenze_bkp = Table(
@@ -226,6 +235,20 @@ class Utenti(Base):
     password = Column(Text, nullable=False)
     profilo = Column(Enum(u'A', u'U'), nullable=False, server_default=text("'U'"))
 
+    def is_authenticated(self):
+        return True
+
+    def is_active(self):
+        return True
+
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return unicode(self.id)
+
+    def __repr__(self):
+        return '<User %r>' % (self.username)
 
 class VoceBusta(Base):
     __tablename__ = 'voce_busta'
