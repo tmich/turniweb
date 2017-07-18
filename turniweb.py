@@ -287,6 +287,11 @@ def modifica_assenza(id_assenza):
         
     return render_template('modifica_assenza.html', dipendenti=dipendenti, motivi=motivi, id_dipendente=assenza.dipendente_id, data_inizio=date.strftime(assenza.data_inizio, '%Y-%m-%d'), data_fine=date.strftime(assenza.data_fine, '%Y-%m-%d'), ora_inizio=date.strftime(assenza.data_inizio, '%H:%M'), ora_fine=date.strftime(assenza.data_fine, '%H:%M'), motivo_id=assenza.motivo_id, id_assenza=assenza.id, giornata_intera=assenza.giornata_intera)
 
+@app.route('/calendar')
+@login_required
+def calendar():
+	return render_template('calendar.html')
+	
 @app.route('/logout')
 @login_required
 def logout():
