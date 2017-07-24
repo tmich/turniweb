@@ -9,7 +9,7 @@
 	$(document).ready(function() {
 		$('#calendar').fullCalendar({
 			schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
-			now: '2017-07-17',
+			now: TODAY,
 			editable: true,
 			aspectRatio: 1.8,
 			scrollTime: '00:00',
@@ -18,7 +18,7 @@
 			header: {
 				left: 'today prev,next',
 				center: 'title',
-				right: 'timelineDay,agendaWeek,timelineWeek,month'
+				right: 'timelineDay,timelineWeek,month'
 			},
 			businessHours: {
 				// days of week. an array of zero-based day of week integers (0=Sunday)
@@ -31,22 +31,36 @@
 			nowIndicator  : true,
 			allDaySlot : false,
 			dayClick: function(start, end, jsEvent, view, resource) {
-				;//alert(start);
+				alert(jsEvent);
+				$(".modal-body #resourceId").val( resource.id );
+				$(".modal-body #dataInizio").val( moment(start).format("YYYY-MM-DD") );
+				$(".modal-body #oraInizio").val( moment(start).format("HH:mm") );
+				$(".modal-body #dataFine").val( moment(end).format("YYYY-MM-DD") );
+				$(".modal-body #oraFine").val( moment(end).format("HH:mm") );
+				$('#myModal').modal('show');
 			},
 			eventClick: function(calEvent, jsEvent, view) {
 
-				alert('Event: ' + calEvent.title);
+				//alert('Event: ' + calEvent.title + "(" + calEvent.id + ")");
 				//alert('Coordinates: ' + jsEvent.pageX + ',' + jsEvent.pageY);
 				//alert('View: ' + view.name);
+				var eventId = calEvent.id;
+				$(".modal-body #eventId").val( eventId );
+				$(".modal-body #resourceId").val( calEvent.resourceId );
+				$(".modal-body #dataInizio").val( moment(calEvent.start).format("YYYY-MM-DD") );
+				$(".modal-body #oraInizio").val( moment(calEvent.start).format("HH:mm") );
+				$(".modal-body #dataFine").val( moment(calEvent.end).format("YYYY-MM-DD") );
+				$(".modal-body #oraFine").val( moment(calEvent.end).format("HH:mm") );
+				$('#myModal').modal('show');
 
 				// change the border color just for fun
 				$(this).css('border-color', 'red');
 
 			},
 			selectable: true,
-			select: function( start, end, jsEvent, view, resource) {
+			/*select: function( start, end, jsEvent, view, resource) {
 				alert('nuovo turno per ' + resource.title);
-			},
+			},*/
 			views: {
 				timelineThreeDays: {
 					type: 'timeline',
@@ -63,44 +77,11 @@
 					field: 'title'
 				}
 			],
-			resources: [
-				{ id: 'a', title: 'ARTISTA SANDRO', occupancy: 40 },
-				{ id: 'b', title: 'CONFALONE SABATINO', occupancy: 40, eventColor: 'green' },
-				{ id: 'c', title: 'DENIS DENIS', occupancy: 40, eventColor: 'orange' },
-				{ id: 'd', title: 'DI DOMENICO ATTILIO', occupancy: 40 },
-				{ id: 'e', title: 'DONADIO GIAMBATTISTA', occupancy: 40 },
-				{ id: 'f', title: 'DONADIO GIUSEPPINA', occupancy: 40 },
-				{ id: 'g', title: 'FARELLA SARA', occupancy: 40 },
-				{ id: 'h', title: 'FERNANDO CHAMAL', occupancy: 40 },
-				{ id: 'i', title: 'IACONO LICIA', occupancy: 40 },
-				{ id: 'j', title: 'IEZZI GIANLUCA', occupancy: 40 },
-				{ id: 'k', title: 'LACROCE GIANLUCA', occupancy: 40 },
-				{ id: 'l', title: 'LANTERNARI CLAUDIO', occupancy: 40 },
-				{ id: 'm', title: 'LANTERNARI GIADA', occupancy: 40 },
-				{ id: 'n', title: 'LANTERNARI JESSICA', occupancy: 40 },
-				{ id: 'o', title: 'MADEDDU PIETRO', occupancy: 40 },
-				{ id: 'p', title: 'MORETTI MATTIA', occupancy: 40 },
-				{ id: 'q', title: 'PALMI GIUSEPPE', occupancy: 40 },
-				{ id: 'r', title: 'PARLA LUIGI', occupancy: 40 },
-				{ id: 's', title: 'PRECILLA RODIMYR REGALARIO', occupancy: 40 },
-				{ id: 't', title: 'RICCI MANUEL', occupancy: 40 },
-				{ id: 'u', title: 'RUSSO LILIANA', occupancy: 40 },
-				{ id: 'v', title: 'SAMAN SAMARATHUNGA', occupancy: 40 },
-				{ id: 'w', title: 'SIMONI MARIA GRAZIA', occupancy: 40 },
-				{ id: 'x', title: 'VALEA MANUELA', occupancy: 40 }
-			],
-			events: [
-				{ id: '1', resourceId: 'b', start: '2017-07-17T06:00:00', end: '2017-07-17T11:00:00', title: 'cassa', selectable: true },
-				{ id: '2', resourceId: 'c', start: '2017-07-18T10:00:00', end: '2017-05-18T12:00:00', title: 'banco' },
-				{ id: '3', resourceId: 'd', start: '2017-07-18', end: '2017-05-20', title: 'ferie', color: 'red' },
-				{ id: '4', resourceId: 'e', start: '2017-07-19T08:00:00', end: '2017-07-19T14:00:00', title: 'laboratorio' },
-				{ id: '5', resourceId: 'f', start: '2017-07-20T15:30:00', end: '2017-07-20T21:00:00', title: 'amministrazione', color: 'purple' },
-				{ id: '6', resourceId: 'g', start: '2017-07-17T09:00:00', end: '2017-07-17T13:00:00', title: 'banco' },
-				{ id: '7', resourceId: 'h', start: '2017-07-17T10:00:00', end: '2017-07-17T14:00:00', title: 'banco' },
-				{ id: '8', resourceId: 'i', start: '2017-07-17T14:00:00', end: '2017-07-17T18:00:00', title: 'banco' },
-				{ id: '9', resourceId: 'k', start: '2017-07-17T17:00:00', end: '2017-07-17T20:00:00', title: 'banco' },
-				{ id: '10', resourceId: 'm', start: '2017-07-17T19:00:00', end: '2017-07-17T21:00:00', title: 'banco' },
-			]
+			resources: {
+				url: '/api/v1/dipendenti',
+				type: 'GET'
+			},
+			events: '/api/v1/events'
 		});
 
 	});
@@ -108,4 +89,31 @@
 
 
 <div id='calendar'></div>
+<!-- Modal -->
+<div id="myModal" class="modal fade" role="dialog">
+  <div class="modal-dialog">
+
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Modifica</h4>
+      </div>
+      <div class="modal-body">
+		id dipendente:<input type="text" name="resourceId" id="resourceId" value=""/><br />
+        da:<input type="date" name="dataInizio" id="dataInizio" value=""/>
+		<input type="time" name="oraInizio" id="oraInizio" value=""/><br />
+		a:<input type="date" name="dataFine" id="dataFine" value=""/>
+        <input type="time" name="oraFine" id="oraFine" value=""/><br />
+		id evento:<input type="text" id="eventId" name="id" value=""/>
+        <p>
+            {#<a href="{{url_for('nuovo')}}"type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#myModal">Open Modal</button></p>#}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+
+  </div>
+</div>
 {% endblock %}

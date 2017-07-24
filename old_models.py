@@ -109,7 +109,7 @@ class Dipendenti(Base):
     presenze = relationship(u'Presenze')
     
     def nome_completo(self):
-		return self.cognome + ' ' + self.nome
+	return self.cognome + ' ' + self.nome
 
 t_dipendenti_bkp = Table(
     'dipendenti_bkp', metadata,
