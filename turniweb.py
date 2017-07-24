@@ -125,10 +125,12 @@ def api_events():
 			'resourceId':a.dipendente_id,
 			'start':a.data_inizio.strftime("%Y-%m-%dT%H:%M:%S"), 
 			'end':a.data_fine.strftime("%Y-%m-%dT%H:%M:%S"), 
-			'title':a.motivo.descrizione, 
-			'allDay':a.giornata_intera, 
+			'title':'%s %s-%s' % (a.motivo.descrizione, a.data_inizio.strftime("%H:%M"), a.data_fine.strftime("%H:%M")),
+			'allDay': 1 if a.giornata_intera else 0, 
+			'desc' : a.motivo.descrizione,
 			#'utente_id':a.utente_id,
-			'color':'red'
+			'color':'red',
+			'type':'A'
 		}
 		lista.append(d)
 	
@@ -139,8 +141,10 @@ def api_events():
 			'resourceId':str(p.dipendente_id),
 			'start':p.data_inizio.strftime("%Y-%m-%dT%H:%M:%S"), 
 			'end':p.data_fine.strftime("%Y-%m-%dT%H:%M:%S"), 
-			'title':p.reparto,
-			'allDay':0
+			'title': '%s %s-%s' % (p.reparto, p.data_inizio.strftime("%H:%M"), p.data_fine.strftime("%H:%M")),
+			'allDay':0,
+			'desc' : p.reparto,
+			'type':'P'
 			#'utente_id':a.utente_id
 		}
 		lista.append(x)
@@ -150,6 +154,118 @@ def api_events():
 	
 	return resp
 
+@app.route('/api/v1/upd_presenza', methods=['POST'])
+def api_update_presenza():
+	form=request.form
+	id=form.get('id', 0)
+	inizio=form.get('inizio', 0)
+	fine=form.get('fine', 0)
+	
+	if(id > 0):
+		try:
+			p = db.session.query(Presenze).get(id)
+			p.data_inizio = inizio
+			p.data_fine = fine
+			db.session.commit()
+			print('OK: %s' % (p.id,), file=sys.stderr)
+			resp = jsonify({'risposta' : 'OK'})
+			resp.status_code = 200
+			return resp
+		except:		
+			pass
+	
+	resp = jsonify({'risposta' : 'KO'})
+	resp.status_code = 500
+	return resp
+
+@app.route('/api/v1/upd_assenza', methods=['POST'])
+def api_update_assenza():
+	form=request.form
+	id=form.get('id', 0)
+	inizio=form.get('inizio', 0)
+	fine=form.get('fine', 0)
+	motivo=form.get('motivo', 0)
+	giornataIntera=form.get('giornataIntera', 'null')
+	
+	print('%s\n%s\n%s\n%s\n%s\n' % (id,inizio,fine,motivo,giornataIntera,), file=sys.stderr)
+	#return 'ok'
+	
+	if(id > 0):
+		try:
+			a=db.session.query(Assenze).get(id)
+			a.data_inizio=inizio
+			a.data_fine=fine
+			if(motivo > 0):
+				a.motivo_id=motivo
+			if(giornataIntera!='null'):
+				a.giornata_intera=giornataIntera
+			db.session.commit()
+			print('OK: %s' % (a.id,), file=sys.stderr)
+			resp = jsonify({'id':a.id})
+			resp.status_code = 200
+			return resp
+		except:		
+			pass
+	
+	resp = jsonify({'risposta' : 'KO'})
+	resp.status_code = 500
+	return resp
+
+@app.route('/api/v1/new_presenza', methods=['POST'])
+def api_create_presenza():
+	form=request.form
+	dip_id=form.get('resourceId', 0)
+	inizio=form.get('inizio', 0)
+	fine=form.get('fine', 0)
+	reparto=form.get('reparto', 0)
+	
+	print('dip_id: %s\ninizio: %s\nfine: %s\nreparto: %s\n' % (dip_id,inizio,fine,reparto,), file=sys.stderr)
+	#return 'OK'
+	
+	if(dip_id > 0):
+		try:
+			p = Presenze(dip_id, inizio, fine, reparto)
+			db.session.add(p)
+			db.session.commit()
+			print('OK: %s' % (p.id,), file=sys.stderr)
+			resp = jsonify({'id':p.id})
+			resp.status_code = 200
+			return resp
+		except:		
+			pass
+	
+	resp = jsonify({'risposta' : 'KO'})
+	resp.status_code = 500
+	return resp
+	
+@app.route('/api/v1/new_assenza', methods=['POST'])
+def api_create_assenza():
+	form=request.form
+	dip_id=form.get('resourceId', 0)
+	inizio=form.get('inizio', 0)
+	fine=form.get('fine', 0)
+	motivo=form.get('motivo', 0)
+	giornataIntera=form.get('giornataIntera', 0)
+	
+	print('dip_id: %s\ninizio: %s\nfine: %s\nmotivo: %s\ngiornataIntera: %s' % (dip_id,inizio,fine,motivo,giornataIntera,), file=sys.stderr)
+	#return 'OK'
+	
+	if(dip_id > 0):
+		try:
+			a=Assenze(dipendente_id=dip_id, data_inizio=inizio, data_fine=fine, giornata_intera=(giornataIntera==1), motivo_id=motivo)
+			db.session.add(a)
+			db.session.commit()
+			print('OK: %s' % (a.id,), file=sys.stderr)
+			resp = jsonify({'id':a.id})
+			resp.status_code = 200
+			return resp
+		except:		
+			pass
+	
+	resp = jsonify({'risposta' : 'KO'})
+	resp.status_code = 500
+	return resp
+	
 @app.route('/api/v1/dipendenti', methods=['GET'])
 def api_dipendenti():
 	lista=[]
@@ -376,7 +492,9 @@ def modifica_assenza(id_assenza):
 @app.route('/calendar')
 @login_required
 def calendar():
-	return render_template('calendar.html')
+	motivi=db.session.query(MotivoAssenza)
+	reparti=db.session.query(Reparti).filter_by(cancellato=0).order_by('nome')
+	return render_template('calendar.html', motivi=motivi, reparti=reparti)
 	
 @app.route('/logout')
 @login_required

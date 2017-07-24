@@ -6,6 +6,8 @@
 	var TODAY = todayDate.format('YYYY-MM-DD');
 	var TOMORROW = todayDate.clone().add(1, 'day').format('YYYY-MM-DD');
 	
+	var eventSource = '/api/v1/events';
+	
 	$(document).ready(function() {
 		$('#calendar').fullCalendar({
 			schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
@@ -20,6 +22,7 @@
 				center: 'title',
 				right: 'timelineDay,timelineWeek,month'
 			},
+			allDayDefault : false,
 			businessHours: {
 				// days of week. an array of zero-based day of week integers (0=Sunday)
 				dow: [ 0, 1, 2, 3, 4, 5, 6 ], // Monday - Thursday
@@ -30,20 +33,7 @@
 			defaultView: 'timelineWeek',
 			nowIndicator  : true,
 			allDaySlot : false,
-			dayClick: function(start, end, jsEvent, view, resource) {
-				alert(jsEvent);
-				$(".modal-body #resourceId").val( resource.id );
-				$(".modal-body #dataInizio").val( moment(start).format("YYYY-MM-DD") );
-				$(".modal-body #oraInizio").val( moment(start).format("HH:mm") );
-				$(".modal-body #dataFine").val( moment(end).format("YYYY-MM-DD") );
-				$(".modal-body #oraFine").val( moment(end).format("HH:mm") );
-				$('#myModal').modal('show');
-			},
 			eventClick: function(calEvent, jsEvent, view) {
-
-				//alert('Event: ' + calEvent.title + "(" + calEvent.id + ")");
-				//alert('Coordinates: ' + jsEvent.pageX + ',' + jsEvent.pageY);
-				//alert('View: ' + view.name);
 				var eventId = calEvent.id;
 				$(".modal-body #eventId").val( eventId );
 				$(".modal-body #resourceId").val( calEvent.resourceId );
@@ -57,10 +47,25 @@
 				$(this).css('border-color', 'red');
 
 			},
+			eventResize: function(event, delta, revertFunc) {
+				if (update(event)) {
+					refresh(event);
+				} else {
+					revertFunc();
+				}
+			},
+			eventDrop: function(event, delta, revertFunc) {
+				if (update(event)) {
+					refresh(event);
+				} else {
+					revertFunc();
+				}
+
+			},
 			selectable: true,
-			/*select: function( start, end, jsEvent, view, resource) {
-				alert('nuovo turno per ' + resource.title);
-			},*/
+			select: function(start, end, jsEvent, view, resource) {
+				add(start, end, resource);
+			},
 			views: {
 				timelineThreeDays: {
 					type: 'timeline',
@@ -81,10 +86,31 @@
 				url: '/api/v1/dipendenti',
 				type: 'GET'
 			},
-			events: '/api/v1/events'
+			events: eventSource
 		});
-
 	});
+	
+	function refresh(event) {
+		event.title = event.desc + ' ' + event.start.format("HH:mm") + '-' + event.end.format("HH:mm");
+	}
+	
+	function update(event) {
+		var url= (event.type=='A' ? '/api/v1/upd_assenza' : '/api/v1/upd_presenza');
+		
+		var jqxhr = $.post(url, 
+			{id:event.id, inizio:event.start.format(), fine:event.end.format()});
+		return true;
+	}
+	
+	function add(start, end, resource) {
+		$(".modal-body #lblDipendente").text( resource.title );
+		$(".modal-body #resourceId").val( resource.id );
+		$(".modal-body #dataInizio").val( moment(start).format("YYYY-MM-DD") );
+		$(".modal-body #oraInizio").val( moment(start).format("HH:mm") );
+		$(".modal-body #dataFine").val( moment(end).format("YYYY-MM-DD") );
+		$(".modal-body #oraFine").val( moment(end).format("HH:mm") );
+		$('#myModal').modal('show');
+	}
 </script>
 
 
@@ -97,23 +123,144 @@
     <div class="modal-content">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal">&times;</button>
-        <h4 class="modal-title">Modifica</h4>
+        <h4 class="modal-title">Nuovo</h4>
       </div>
-      <div class="modal-body">
-		id dipendente:<input type="text" name="resourceId" id="resourceId" value=""/><br />
-        da:<input type="date" name="dataInizio" id="dataInizio" value=""/>
-		<input type="time" name="oraInizio" id="oraInizio" value=""/><br />
-		a:<input type="date" name="dataFine" id="dataFine" value=""/>
-        <input type="time" name="oraFine" id="oraFine" value=""/><br />
-		id evento:<input type="text" id="eventId" name="id" value=""/>
-        <p>
-            {#<a href="{{url_for('nuovo')}}"type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#myModal">Open Modal</button></p>#}
+      <div class="modal-body form-inline">
+		<div class="row">
+			<div class="col-md-12">
+				<h4 id="lblDipendente"></h4>
+			</div>
+		</div>
+		<input type="hidden" name="resourceId" id="resourceId" value=""/><br />
+		<div class="row">
+			<div class="col-md-1">
+				&nbsp;
+			</div>
+			<div class="col-md-10">
+				<select class="form-control" id="cmbType">
+					<option selected value="P">Turno</option>
+					<option value="A">Assenza</option>
+				</select>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-md-1">
+				<label>da:</label>
+			</div>
+			<div class="col-md-11">
+				<input class="form-control" type="date" name="dataInizio" id="dataInizio" value=""/>
+				<input class="form-control" type="time" name="oraInizio" id="oraInizio" value=""/>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-md-1">
+				<label>a:</label>
+			</div>
+			<div class="col-md-11">
+				<input class="form-control" type="date" name="dataFine" id="dataFine" value=""/>
+				<input class="form-control" type="time" name="oraFine" id="oraFine" value=""/><br />
+				<input type="hidden" id="eventId" name="id" value=""/>
+			</div>
+		</div>
+		<div class="row" id="rowReparti">
+			<div class="col-md-1">
+				<label>reparto:</label>
+			</div>
+			<div class="col-md-11">
+				<select class="form-control" name="reparto" id="cmbReparto">
+					{% for r in reparti %}
+						<option value="{{ r.nome }}">{{ r.nome }}</option>
+					{% endfor %}
+				</select>
+			</div>
+		</div>
+		<div class="row" id="rowMotivi" style="display: none;">
+			<div class="col-md-1">
+				<label>motivo:</label>
+			</div>
+			<div class="col-md-5">
+				<select class="form-control" name="motivo" id="cmbMotivo">
+					{% for m in motivi %}
+						<option value="{{ m.id }}">{{ m.descrizione }}</option>
+					{% endfor %}
+				</select>
+			</div>
+			<div class="col-md-5">
+				<label>giornata intera:</label>
+				<input type="checkbox" class="form-control" name="ggInt" id="ggInt" />
+			</div>
+		</div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+		<button type="button" id="btnSave" class="btn btn-success">Salva</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
       </div>
     </div>
 
   </div>
 </div>
+<script>
+	$('#cmbType').on('change', function() {
+		var type = $( "#cmbType" ).val();
+
+		if(type=="A") {
+			$("#rowReparti").hide();
+			$("#rowMotivi").show();
+		} else {
+			$("#rowReparti").show();
+			$("#rowMotivi").hide();
+		}
+	});
+		
+	$('#btnSave').on('click', function() {
+		var type = $( "#cmbType" ).val();
+		var url = (type=='A' ? '/api/v1/new_assenza' : '/api/v1/new_presenza');
+		var resourceId = $(".modal-body #resourceId").val();
+		var dataInizio = $(".modal-body #dataInizio").val();
+		var oraInizio = $(".modal-body #oraInizio").val();
+		var dataFine = $(".modal-body #dataFine").val();
+		var oraFine = $(".modal-body #oraFine").val();
+		var giornataIntera = ( $(".modal-body #ggInt").is(':checked') ? 1 : 0 );
+		
+		if(type=='P') {
+			// nuovo turno
+			var reparto=$(".modal-body #cmbReparto").val();
+			var jqxhr = $.post(url, {
+				resourceId:resourceId, 
+				inizio:moment(dataInizio + 'T' + oraInizio).format(), 
+				fine:moment(dataFine + 'T' + oraFine).format(),
+				reparto:reparto
+			});
+			jqxhr.success(function( data ) {
+				$('#myModal').modal('hide');
+				refetchEventSources();
+			});
+			jqxhr.fail(function( data ) {
+				alert( "error" );
+			});
+		} else {
+			// nuova assenza
+			var motivo = $('.modal-body #cmbMotivo').val();
+			var jqxhr = $.post(url, {
+				resourceId:resourceId, 
+				inizio:moment(dataInizio + 'T' + oraInizio).format(), 
+				fine:moment(dataFine + 'T' + oraFine).format(),
+				motivo:motivo,
+				giornataIntera:giornataIntera
+			});
+			jqxhr.success(function( data ) {
+				$('#myModal').modal('hide');
+				refetchEventSources();
+			});
+			jqxhr.fail(function( data ) {
+				alert( "error" );
+			});
+		}
+	});
+	
+	function refetchEventSources() {
+		//alert(sources);
+		$('#calendar').fullCalendar( 'refetchEventSources', eventSource );
+	}
+</script>
 {% endblock %}
