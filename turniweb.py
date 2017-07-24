@@ -123,11 +123,13 @@ def api_events():
 	for a in assenze:
 		d = {'id':str(a.id),
 			'resourceId':a.dipendente_id,
+			'resource':a.dipendente.nome_completo(),
 			'start':a.data_inizio.strftime("%Y-%m-%dT%H:%M:%S"), 
 			'end':a.data_fine.strftime("%Y-%m-%dT%H:%M:%S"), 
 			'title':'%s %s-%s' % (a.motivo.descrizione, a.data_inizio.strftime("%H:%M"), a.data_fine.strftime("%H:%M")),
 			'allDay': 1 if a.giornata_intera else 0, 
 			'desc' : a.motivo.descrizione,
+			'motivo_id' : a.motivo.id,
 			#'utente_id':a.utente_id,
 			'color':'red',
 			'type':'A'
@@ -139,6 +141,7 @@ def api_events():
 		x = {
 			'id':p.id, 
 			'resourceId':str(p.dipendente_id),
+			'resource':p.dipendente.nome_completo(),
 			'start':p.data_inizio.strftime("%Y-%m-%dT%H:%M:%S"), 
 			'end':p.data_fine.strftime("%Y-%m-%dT%H:%M:%S"), 
 			'title': '%s %s-%s' % (p.reparto, p.data_inizio.strftime("%H:%M"), p.data_fine.strftime("%H:%M")),
@@ -160,12 +163,15 @@ def api_update_presenza():
 	id=form.get('id', 0)
 	inizio=form.get('inizio', 0)
 	fine=form.get('fine', 0)
+	reparto=form.get('reparto', 0)
+	#print('reparto: %s\n' % (reparto,), file=sys.stderr)
 	
 	if(id > 0):
 		try:
 			p = db.session.query(Presenze).get(id)
 			p.data_inizio = inizio
 			p.data_fine = fine
+			p.reparto = reparto
 			db.session.commit()
 			print('OK: %s' % (p.id,), file=sys.stderr)
 			resp = jsonify({'risposta' : 'OK'})
@@ -178,6 +184,46 @@ def api_update_presenza():
 	resp.status_code = 500
 	return resp
 
+@app.route('/api/v1/del_assenza', methods=['POST'])
+def api_delete_assenza():
+	form=request.form
+	id=form.get('id', 0)
+	
+	if(id > 0):
+		try:
+			a=db.session.query(Assenze).get(id)
+			db.session.delete(a)
+			db.session.commit()
+			resp = jsonify({'id':id})
+			resp.status_code = 200
+			return resp
+		except:		
+			pass
+	
+	resp = jsonify({'risposta' : 'KO'})
+	resp.status_code = 500
+	return resp
+
+@app.route('/api/v1/del_presenza', methods=['POST'])
+def api_delete_presenza():
+	form=request.form
+	id=form.get('id', 0)
+	
+	if(id > 0):
+		try:
+			p=db.session.query(Presenze).get(id)
+			db.session.delete(p)
+			db.session.commit()
+			resp = jsonify({'id':id})
+			resp.status_code = 200
+			return resp
+		except:		
+			pass
+	
+	resp = jsonify({'risposta' : 'KO'})
+	resp.status_code = 500
+	return resp
+	
 @app.route('/api/v1/upd_assenza', methods=['POST'])
 def api_update_assenza():
 	form=request.form
@@ -187,7 +233,7 @@ def api_update_assenza():
 	motivo=form.get('motivo', 0)
 	giornataIntera=form.get('giornataIntera', 'null')
 	
-	print('%s\n%s\n%s\n%s\n%s\n' % (id,inizio,fine,motivo,giornataIntera,), file=sys.stderr)
+	print('id:%s\ninizio:%s\nfine:%s\nmotivo_id:%s\ngiornata_intera:%s\n' % (id,inizio,fine,motivo,giornataIntera,), file=sys.stderr)
 	#return 'ok'
 	
 	if(id > 0):
@@ -198,7 +244,7 @@ def api_update_assenza():
 			if(motivo > 0):
 				a.motivo_id=motivo
 			if(giornataIntera!='null'):
-				a.giornata_intera=giornataIntera
+				a.giornata_intera=giornataIntera==1
 			db.session.commit()
 			print('OK: %s' % (a.id,), file=sys.stderr)
 			resp = jsonify({'id':a.id})

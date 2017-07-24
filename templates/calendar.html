@@ -33,19 +33,10 @@
 			defaultView: 'timelineWeek',
 			nowIndicator  : true,
 			allDaySlot : false,
-			eventClick: function(calEvent, jsEvent, view) {
-				var eventId = calEvent.id;
-				$(".modal-body #eventId").val( eventId );
-				$(".modal-body #resourceId").val( calEvent.resourceId );
-				$(".modal-body #dataInizio").val( moment(calEvent.start).format("YYYY-MM-DD") );
-				$(".modal-body #oraInizio").val( moment(calEvent.start).format("HH:mm") );
-				$(".modal-body #dataFine").val( moment(calEvent.end).format("YYYY-MM-DD") );
-				$(".modal-body #oraFine").val( moment(calEvent.end).format("HH:mm") );
-				$('#myModal').modal('show');
-
+			eventClick: function(event, jsEvent, view) {
+				show(event);
 				// change the border color just for fun
-				$(this).css('border-color', 'red');
-
+				//$(this).css('border-color', 'red');
 			},
 			eventResize: function(event, delta, revertFunc) {
 				if (update(event)) {
@@ -94,6 +85,30 @@
 		event.title = event.desc + ' ' + event.start.format("HH:mm") + '-' + event.end.format("HH:mm");
 	}
 	
+	function show(event) {
+		var eventId = event.id;
+
+		$(".modal-title").text( 'Modifica' );
+		$(".modal-body #lblDipendente").text( event.resource );
+		$(".modal-body #cmbType").val( event.type );
+		toggle(event.type);
+		$(".modal-body #cmbType").attr( 'disabled', true );
+		$(".modal-body #eventId").val( eventId );
+		$(".modal-body #resourceId").val( event.resourceId );
+		$(".modal-body #dataInizio").val( moment(event.start).format("YYYY-MM-DD") );
+		$(".modal-body #oraInizio").val( moment(event.start).format("HH:mm") );
+		$(".modal-body #dataFine").val( moment(event.end).format("YYYY-MM-DD") );
+		$(".modal-body #oraFine").val( moment(event.end).format("HH:mm") );
+		if(event.type == "A") {
+			$(".modal-body #cmbMotivo").val( event.motivo_id );
+		} else {
+			$(".modal-body #cmbReparto").val( event.desc );
+		}
+		$(".modal-body #ggInt").prop('checked', event.allDay == 1);
+		$('#btnDelete').show();
+		$('#myModal').modal('show');
+	}
+	
 	function update(event) {
 		var url= (event.type=='A' ? '/api/v1/upd_assenza' : '/api/v1/upd_presenza');
 		
@@ -103,12 +118,16 @@
 	}
 	
 	function add(start, end, resource) {
+		$(".modal-title").text( 'Nuovo' );
+		$(".modal-body #cmbType").attr( 'disabled', false );
+		$(".modal-body #eventId").val( '' );
 		$(".modal-body #lblDipendente").text( resource.title );
 		$(".modal-body #resourceId").val( resource.id );
 		$(".modal-body #dataInizio").val( moment(start).format("YYYY-MM-DD") );
 		$(".modal-body #oraInizio").val( moment(start).format("HH:mm") );
 		$(".modal-body #dataFine").val( moment(end).format("YYYY-MM-DD") );
 		$(".modal-body #oraFine").val( moment(end).format("HH:mm") );
+		$('#btnDelete').hide();
 		$('#myModal').modal('show');
 	}
 </script>
@@ -129,9 +148,10 @@
 		<div class="row">
 			<div class="col-md-12">
 				<h4 id="lblDipendente"></h4>
+				<input type="hidden" name="eventId" id="eventId" value=""/><br />
+				<input type="hidden" name="resourceId" id="resourceId" value=""/><br />
 			</div>
 		</div>
-		<input type="hidden" name="resourceId" id="resourceId" value=""/><br />
 		<div class="row">
 			<div class="col-md-1">
 				&nbsp;
@@ -159,7 +179,6 @@
 			<div class="col-md-11">
 				<input class="form-control" type="date" name="dataFine" id="dataFine" value=""/>
 				<input class="form-control" type="time" name="oraFine" id="oraFine" value=""/><br />
-				<input type="hidden" id="eventId" name="id" value=""/>
 			</div>
 		</div>
 		<div class="row" id="rowReparti">
@@ -192,6 +211,7 @@
 		</div>
       </div>
       <div class="modal-footer">
+		<button type="button" id="btnDelete" class="btn btn-danger">Elimina</button>
 		<button type="button" id="btnSave" class="btn btn-success">Salva</button>
         <button type="button" class="btn btn-default" data-dismiss="modal">Annulla</button>
       </div>
@@ -202,7 +222,10 @@
 <script>
 	$('#cmbType').on('change', function() {
 		var type = $( "#cmbType" ).val();
-
+		toggle(type);
+	});
+	
+	function toggle(type) {
 		if(type=="A") {
 			$("#rowReparti").hide();
 			$("#rowMotivi").show();
@@ -210,11 +233,35 @@
 			$("#rowReparti").show();
 			$("#rowMotivi").hide();
 		}
-	});
+	}
+	
+	$('#btnDelete').on('click', function() {
+		if (!confirm('Eliminare?')) {
+			return false;
+		}
+		var type = $( "#cmbType" ).val();
+		var eventId = $(".modal-body #eventId").val();
+		var url = (type=='A' ? '/api/v1/del_assenza' : '/api/v1/del_presenza');
 		
+
+		// elimina turno
+		var jqxhr = $.post(url, {
+			id:eventId
+		});
+		jqxhr.success(function( data ) {
+			$('#myModal').modal('hide');
+			refetchEventSources();
+		});
+		jqxhr.fail(function( data ) {
+			alert( "error" );
+		});
+	});
+	
 	$('#btnSave').on('click', function() {
 		var type = $( "#cmbType" ).val();
-		var url = (type=='A' ? '/api/v1/new_assenza' : '/api/v1/new_presenza');
+		var action = ($(".modal-body #eventId").val() == '' ? 'new' : 'upd');
+		var url = (type=='A' ? '/api/v1/'+action+'_assenza' : '/api/v1/'+action+'_presenza');
+		var eventId = $(".modal-body #eventId").val();
 		var resourceId = $(".modal-body #resourceId").val();
 		var dataInizio = $(".modal-body #dataInizio").val();
 		var oraInizio = $(".modal-body #oraInizio").val();
@@ -223,9 +270,10 @@
 		var giornataIntera = ( $(".modal-body #ggInt").is(':checked') ? 1 : 0 );
 		
 		if(type=='P') {
-			// nuovo turno
+			// inserisci/modifica turno
 			var reparto=$(".modal-body #cmbReparto").val();
 			var jqxhr = $.post(url, {
+				id:eventId,
 				resourceId:resourceId, 
 				inizio:moment(dataInizio + 'T' + oraInizio).format(), 
 				fine:moment(dataFine + 'T' + oraFine).format(),
@@ -239,9 +287,10 @@
 				alert( "error" );
 			});
 		} else {
-			// nuova assenza
+			// inserisci/modifica assenza
 			var motivo = $('.modal-body #cmbMotivo').val();
 			var jqxhr = $.post(url, {
+				id:eventId,
 				resourceId:resourceId, 
 				inizio:moment(dataInizio + 'T' + oraInizio).format(), 
 				fine:moment(dataFine + 'T' + oraFine).format(),
