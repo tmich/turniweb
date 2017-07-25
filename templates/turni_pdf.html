@@ -57,7 +57,7 @@
             {% if not node.is_root %}
                 {% if not node.is_leaf %}
                     <tr>
-                        <td>{{ node.name | truncate(length=30) }}</td>
+                        <td>{{ node.name | truncate(length=25) }}</td>
                         {% for giornata in node.descendants %}
                             <td style="text-align:center;">
                                 {% for presenze in giornata.presenze %}

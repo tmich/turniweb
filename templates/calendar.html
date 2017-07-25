@@ -6,7 +6,7 @@
 	var TODAY = todayDate.format('YYYY-MM-DD');
 	var TOMORROW = todayDate.clone().add(1, 'day').format('YYYY-MM-DD');
 	
-	var eventSource = '/api/v1/events';
+	var eventSource = '/turniweb/api/v1/events';
 	
 	$(document).ready(function() {
 		$('#calendar').fullCalendar({
@@ -40,14 +40,16 @@
 			},
 			eventResize: function(event, delta, revertFunc) {
 				if (update(event)) {
-					refresh(event);
+					//refresh(event);
+					refetchEventSources();
 				} else {
 					revertFunc();
 				}
 			},
 			eventDrop: function(event, delta, revertFunc) {
 				if (update(event)) {
-					refresh(event);
+					//refresh(event);
+					refetchEventSources();
 				} else {
 					revertFunc();
 				}
@@ -74,12 +76,21 @@
 				}
 			],
 			resources: {
-				url: '/api/v1/dipendenti',
+				url: '/turniweb/api/v1/dipendenti',
 				type: 'GET'
 			},
 			events: eventSource
 		});
 	});
+	
+	function GetCalendarDateRange() {
+        var calendar = $('#calendar').fullCalendar('getCalendar');
+        var view = calendar.view;
+        var start = view.start._d;
+        var end = view.end._d;
+        var dates = { start: start, end: end };
+        return dates;
+    }
 	
 	function refresh(event) {
 		event.title = event.desc + ' ' + event.start.format("HH:mm") + '-' + event.end.format("HH:mm");
@@ -110,10 +121,14 @@
 	}
 	
 	function update(event) {
-		var url= (event.type=='A' ? '/api/v1/upd_assenza' : '/api/v1/upd_presenza');
+		var url= (event.type=='A' ? '/turniweb/api/v1/upd_assenza' : '/turniweb/api/v1/upd_presenza');
 		
-		var jqxhr = $.post(url, 
-			{id:event.id, inizio:event.start.format(), fine:event.end.format()});
+		var jqxhr = $.post(url, {
+			id:event.id, 
+			inizio:event.start.format(), 
+			fine:event.end.format(),
+			reparto:event.desc
+		});
 		return true;
 	}
 	
@@ -132,7 +147,7 @@
 	}
 </script>
 
-
+<button type="button" id="btnShowStampa" class="btn btn-default"><span class="glyphicon glyphicon-print">&nbsp;</span>Stampa</button><br />
 <div id='calendar'></div>
 <!-- Modal -->
 <div id="myModal" class="modal fade" role="dialog">
@@ -219,10 +234,58 @@
 
   </div>
 </div>
+
+<!-- Modal -->
+<div id="printModal" class="modal fade" role="dialog">
+  <div class="modal-dialog">
+
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Stampa</h4>
+      </div>
+      <div class="modal-body">
+		<div class="row" id="rowReparti">
+			<div class="col-md-11">
+				{% for r in reparti %}
+					<input type="checkbox" class="chkStampaReparti" value="{{ r.nome }}" /><label>{{ r.nome }}</label><br />
+				{% endfor %}
+				</select>
+			</div>
+		</div>
+      </div>
+	  <div class="modal-footer">
+		<button type="button" id="btnStampa" class="btn btn-default"><span class="glyphicon glyphicon-print">&nbsp;</span>Stampa</button>
+	  </div>
+    </div>
+  </div>
+</div>
 <script>
 	$('#cmbType').on('change', function() {
 		var type = $( "#cmbType" ).val();
 		toggle(type);
+	});
+	
+	$('#btnShowStampa').on('click', function() {
+		$('#printModal').modal('show');
+	});
+	
+	$('#btnStampa').on('click', function() {
+		var reparti=[];
+		$('.chkStampaReparti').each(function( index, checkbox ) {
+			if($(checkbox).is(':checked')) {
+				reparti.push( $(checkbox).val() );
+			}
+		});
+		if( reparti.length > 0 ) {
+			var range = GetCalendarDateRange();
+			var url = '/stampa?start=' + moment(range.start).format('YYYY-MM-DD') + '&end=' + moment(range.end).format('YYYY-MM-DD') + '&reparti=' + reparti.join();
+			$('#printModal').modal('hide');
+			window.open(url,'_blank');
+		} else {
+			alert('Seleziona almeno un reparto!');
+		}
 	});
 	
 	function toggle(type) {
@@ -241,7 +304,7 @@
 		}
 		var type = $( "#cmbType" ).val();
 		var eventId = $(".modal-body #eventId").val();
-		var url = (type=='A' ? '/api/v1/del_assenza' : '/api/v1/del_presenza');
+		var url = (type=='A' ? '/turniweb/api/v1/del_assenza' : '/turniweb/api/v1/del_presenza');
 		
 
 		// elimina turno
@@ -253,14 +316,14 @@
 			refetchEventSources();
 		});
 		jqxhr.fail(function( data ) {
-			alert( "error" );
+			alert( data.error_message );
 		});
 	});
 	
 	$('#btnSave').on('click', function() {
 		var type = $( "#cmbType" ).val();
 		var action = ($(".modal-body #eventId").val() == '' ? 'new' : 'upd');
-		var url = (type=='A' ? '/api/v1/'+action+'_assenza' : '/api/v1/'+action+'_presenza');
+		var url = (type=='A' ? '/turniweb/api/v1/'+action+'_assenza' : '/turniweb/api/v1/'+action+'_presenza');
 		var eventId = $(".modal-body #eventId").val();
 		var resourceId = $(".modal-body #resourceId").val();
 		var dataInizio = $(".modal-body #dataInizio").val();
@@ -284,7 +347,7 @@
 				refetchEventSources();
 			});
 			jqxhr.fail(function( data ) {
-				alert( "error" );
+				alert( data.error_message );
 			});
 		} else {
 			// inserisci/modifica assenza
@@ -302,9 +365,18 @@
 				refetchEventSources();
 			});
 			jqxhr.fail(function( data ) {
-				alert( "error" );
+				alert( data.error_message );
 			});
 		}
+	});
+	
+	$('#ggInt').on('change', function() {
+		if($(this).is(':checked')) {
+			$(".modal-body #oraInizio").val('00:00');
+			$(".modal-body #oraFine").val('23:59');
+		}
+		$(".modal-body #oraInizio").attr( 'disabled', $(this).is(':checked') );
+		$(".modal-body #oraFine").attr( 'disabled', $(this).is(':checked') );
 	});
 	
 	function refetchEventSources() {

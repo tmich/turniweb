@@ -5,6 +5,7 @@ from time import strftime
 from flask import Flask, request, session, g, redirect, url_for, abort, render_template, flash, make_response, jsonify, json
 from flask_babel import Babel, format_datetime, format_date
 from flask_mail import Mail, Message
+#from sqlalchemy.sql.expression import in_
 from dateutil.parser import parse
 import jsonpickle
 from models import db, Dipendenti, Presenze, Assenze, Reparti, MotivoAssenza, Utenti
@@ -79,7 +80,7 @@ def login():
 			# Login and validate the user.
 			# user should be an instance of your `User` class
 			if login_user(user):
-				flash('Accesso effettuato come %s' % (current_user.username), 'success')
+				#flash('Accesso effettuato come %s' % (current_user.username), 'success')
 
 				next = request.args.get('next')
 				# is_safe_url should check if the url is safe for redirects.
@@ -87,7 +88,7 @@ def login():
 				# if not is_safe_url(next):
 					# return flask.abort(400)
 
-				return redirect(next or url_for('turni'))
+				return redirect(next or url_for('calendar'))
 	
 		flash('Accesso non riuscito', 'danger')
 	return render_template('login.html')
@@ -120,13 +121,17 @@ def api_events():
 	lista=[]
 	
 	assenze=db.session.query(Assenze).filter(Assenze.data_inizio >= datetime.datetime.strptime(start, '%Y-%m-%d')).order_by(Assenze.data_inizio)
-	for a in assenze:
+	for a in assenze:	
+		title = a.motivo.descrizione
+		title = title + ' ' + a.data_inizio.strftime("%H:%M")
+		title = title + '-' + (a.data_fine.strftime("%H:%M") if a.data_fine != None else '')
+		
 		d = {'id':str(a.id),
 			'resourceId':a.dipendente_id,
 			'resource':a.dipendente.nome_completo(),
 			'start':a.data_inizio.strftime("%Y-%m-%dT%H:%M:%S"), 
-			'end':a.data_fine.strftime("%Y-%m-%dT%H:%M:%S"), 
-			'title':'%s %s-%s' % (a.motivo.descrizione, a.data_inizio.strftime("%H:%M"), a.data_fine.strftime("%H:%M")),
+			'end':a.data_fine.strftime("%Y-%m-%dT%H:%M:%S") if a.data_fine != None else '', 
+			'title': title,
 			'allDay': 1 if a.giornata_intera else 0, 
 			'desc' : a.motivo.descrizione,
 			'motivo_id' : a.motivo.id,
@@ -231,29 +236,36 @@ def api_update_assenza():
 	inizio=form.get('inizio', 0)
 	fine=form.get('fine', 0)
 	motivo=form.get('motivo', 0)
-	giornataIntera=form.get('giornataIntera', 'null')
+	giornataIntera=form.get('giornataIntera', None)
 	
-	print('id:%s\ninizio:%s\nfine:%s\nmotivo_id:%s\ngiornata_intera:%s\n' % (id,inizio,fine,motivo,giornataIntera,), file=sys.stderr)
+	#print('id:%s\ninizio:%s\nfine:%s\nmotivo_id:%s\ngiornata_intera:%s\n' % (id,inizio,fine,motivo,giornataIntera,), file=sys.stderr)
 	#return 'ok'
+	error=''
 	
 	if(id > 0):
 		try:
 			a=db.session.query(Assenze).get(id)
 			a.data_inizio=inizio
 			a.data_fine=fine
+			
 			if(motivo > 0):
 				a.motivo_id=motivo
-			if(giornataIntera!='null'):
-				a.giornata_intera=giornataIntera==1
+			
+			if(giornataIntera != None):
+				a.giornata_intera=giornataIntera
+				#print('modificata giornata intera: %d=%d\n' % (int(giornataIntera), int(a.giornata_intera)), file=sys.stderr)
+			
 			db.session.commit()
-			print('OK: %s' % (a.id,), file=sys.stderr)
+			#print('OK: %d (giornata intera: %d)' % (a.id, a.giornata_intera), file=sys.stderr)
+			
 			resp = jsonify({'id':a.id})
 			resp.status_code = 200
 			return resp
-		except:		
-			pass
+		except TypeError as e:
+			error = str(e)
+			print(error, file=sys.stderr)
 	
-	resp = jsonify({'risposta' : 'KO'})
+	resp = jsonify({'error_message' : error})
 	resp.status_code = 500
 	return resp
 
@@ -265,7 +277,7 @@ def api_create_presenza():
 	fine=form.get('fine', 0)
 	reparto=form.get('reparto', 0)
 	
-	print('dip_id: %s\ninizio: %s\nfine: %s\nreparto: %s\n' % (dip_id,inizio,fine,reparto,), file=sys.stderr)
+	#print('dip_id: %s\ninizio: %s\nfine: %s\nreparto: %s\n' % (dip_id,inizio,fine,reparto,), file=sys.stderr)
 	#return 'OK'
 	
 	if(dip_id > 0):
@@ -273,7 +285,7 @@ def api_create_presenza():
 			p = Presenze(dip_id, inizio, fine, reparto)
 			db.session.add(p)
 			db.session.commit()
-			print('OK: %s' % (p.id,), file=sys.stderr)
+			#print('OK: %s' % (p.id,), file=sys.stderr)
 			resp = jsonify({'id':p.id})
 			resp.status_code = 200
 			return resp
@@ -298,7 +310,7 @@ def api_create_assenza():
 	
 	if(dip_id > 0):
 		try:
-			a=Assenze(dipendente_id=dip_id, data_inizio=inizio, data_fine=fine, giornata_intera=(giornataIntera==1), motivo_id=motivo)
+			a=Assenze(dipendente_id=dip_id, data_inizio=inizio, data_fine=fine, giornata_intera=giornataIntera, motivo_id=motivo)
 			db.session.add(a)
 			db.session.commit()
 			print('OK: %s' % (a.id,), file=sys.stderr)
@@ -326,8 +338,34 @@ def api_dipendenti():
 	resp.status_code = 200
 	
 	return resp
+
+@app.route('/stampa', methods=['GET'])
+def stampa():
+	qr = request.args.get('reparti', 0)
+	dt1 = request.args.get('start', 0)
+	dt2 = request.args.get('end', 0)
 	
-def crea_albero_presenze(dt1, dt2):
+	if(qr != 0):
+		reparti=qr.split(',')
+		tree, giorni, dipendenti = crea_albero_presenze(parse(dt1), parse(dt2), reparti)
+		#return render_template('turni_pdf.html', dipendenti=dipendenti, tree=tree, data_inizio=dt1, data_fine=dt2, giorni=giorni)
+		#print(tree, file=sys.stderr)
+		#print(sstr, file=sys.stderr)
+		pdf=create_pdf(render_template('turni_pdf.html', dipendenti=dipendenti, tree=tree, data_inizio=dt1, data_fine=dt2, giorni=giorni))
+		#print(pdf.getvalue(), file=sys.stderr)
+		response=make_response(pdf.getvalue())
+		response.headers['Content-Type'] = 'application/pdf'
+		response.headers['Content-Disposition'] = 'inline; filename=turni.pdf'
+		return response
+
+@app.route('/calendar')
+@login_required
+def calendar():
+	motivi=db.session.query(MotivoAssenza)
+	reparti=db.session.query(Reparti).filter_by(cancellato=0).order_by('nome')
+	return render_template('calendar.html', motivi=motivi, reparti=reparti)
+	
+def crea_albero_presenze(dt1, dt2, reparti=[]):
 	delta = dt2 - dt1
 	days = delta.days
 	
@@ -335,7 +373,7 @@ def crea_albero_presenze(dt1, dt2):
 	
 	dipendenti=db.session.query(Dipendenti).filter_by(cancellato=0).order_by('cognome')
 	root=Node("root")
-	
+	#print(reparti, file=sys.stderr)
 	i=0
 	dt=dt1
 	for i in range(days):
@@ -351,6 +389,7 @@ def crea_albero_presenze(dt1, dt2):
 				filter(Presenze.cancellato==0).
 				filter(Presenze.dipendente_id==d.id).
 				filter(Presenze.data_inizio.between(dt, dt + datetime.timedelta(days=1))).
+				filter(Presenze.reparto.in_(reparti)).
 				order_by(Presenze.data_inizio)
 			)
 
@@ -534,13 +573,6 @@ def modifica_assenza(id_assenza):
 		return redirect(url_for('turni'))
 		
 	return render_template('modifica_assenza.html', dipendenti=dipendenti, motivi=motivi, id_dipendente=assenza.dipendente_id, data_inizio=date.strftime(assenza.data_inizio, '%Y-%m-%d'), data_fine=date.strftime(assenza.data_fine, '%Y-%m-%d'), ora_inizio=date.strftime(assenza.data_inizio, '%H:%M'), ora_fine=date.strftime(assenza.data_fine, '%H:%M'), motivo_id=assenza.motivo_id, id_assenza=assenza.id, giornata_intera=assenza.giornata_intera)
-
-@app.route('/calendar')
-@login_required
-def calendar():
-	motivi=db.session.query(MotivoAssenza)
-	reparti=db.session.query(Reparti).filter_by(cancellato=0).order_by('nome')
-	return render_template('calendar.html', motivi=motivi, reparti=reparti)
 	
 @app.route('/logout')
 @login_required
