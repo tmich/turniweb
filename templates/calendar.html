@@ -280,7 +280,7 @@
 		});
 		if( reparti.length > 0 ) {
 			var range = GetCalendarDateRange();
-			var url = '/stampa?start=' + moment(range.start).format('YYYY-MM-DD') + '&end=' + moment(range.end).format('YYYY-MM-DD') + '&reparti=' + reparti.join();
+			var url = '/turniweb/stampa?start=' + moment(range.start).format('YYYY-MM-DD') + '&end=' + moment(range.end).format('YYYY-MM-DD') + '&reparti=' + reparti.join();
 			$('#printModal').modal('hide');
 			window.open(url,'_blank');
 		} else {
